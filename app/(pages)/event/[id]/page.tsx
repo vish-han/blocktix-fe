@@ -1,73 +1,27 @@
 import {Breadcrumb} from "@/app/(pages)/event/components/Breadcrums";
 import {EventHero} from "@/app/(pages)/event/components/EventHero";
-import {TicketFilters} from "@/app/(pages)/event/components/Filter";
 import {TicketCard} from "@/app/(pages)/event/components/TicketCard";
 import {EventInformation} from "@/app/(pages)/event/components/EventInfo";
-export default  function  EventDetailsPage (){
-    const event = {
-        title: "Flip Circus",
-        date: "Today • 21 Sep • Sun • 13:00 • 2025",
-        time: "1:00 PM",
-        venue: "Palisades Center, West Nyack",
-        address: "1000 Palisades Center Dr, West Nyack, NY 10994, USA"
-    };
+import {eventService} from "@/app/service/events.service";
 
-    const tickets = [
-        {
-            section: "General Admission",
-            quantity: 2,
-            price: 1618,
-            originalPrice: 3221,
-            badge: "Great",
-            details: null,
-            remaining: null
-        },
-        {
-            section: "General Admission",
-            quantity: 2,
-            price: 1716,
-            originalPrice: 2428,
-            badge: null,
-            details: null,
-            remaining: null
-        },
-        {
-            section: "BB",
-            quantity: 2,
-            price: 9674,
-            originalPrice: null,
-            badge: null,
-            details: "Row J | Seats 100 - 103",
-            remaining: "4"
-        },
-        {
-            section: "DD",
-            quantity: 2,
-            price: 9674,
-            originalPrice: null,
-            badge: null,
-            details: "Row J | Seats 100 - 103",
-            remaining: "4"
-        }
-    ];
+interface EventDetailsPageProps {
+    params: {
+        id: string;
+    };
+}
+
+export default async function EventDetailsPage({ params }: EventDetailsPageProps) {
+    const { id } = params;
+    const event = await eventService.getEventById(parseInt(id));
 
     return (
         <div className="min-h-screen bg-[#E8DFCA]">
             <main className="container mx-auto px-8 py-8">
-                <Breadcrumb eventName={event.title} />
+                <Breadcrumb eventName={event.name} />
 
                 <EventHero event={event} />
 
                 <div className="grid lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-2">
-                        <TicketFilters />
-
-                        <div className="space-y-6">
-                            {tickets.map((ticket, index) => (
-                                <TicketCard key={index} ticket={ticket} />
-                            ))}
-                        </div>
-                    </div>
 
                     {/* Sidebar */}
                     <div className="lg:col-span-1">

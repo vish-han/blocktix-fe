@@ -1,8 +1,9 @@
 'use client'
 import {useState} from "react";
 import {Calendar, Clock, Heart, MapPin, Share2, Shield, Star} from "lucide-react";
+import {Events} from "@/app/types/Events";
 
-export const EventHero = ({ event }) => {
+export const EventHero = ({ event }:{event:Events}) => {
     const [isLiked, setIsLiked] = useState(false);
 
     return (
@@ -14,8 +15,7 @@ export const EventHero = ({ event }) => {
                         className="w-full h-full bg-gradient-to-br from-purple-600 via-pink-600 to-red-500 flex items-center justify-center"
                     >
                         <div className="text-center text-white">
-                            <div className="text-8xl mb-4">🎪</div>
-                            <div className="text-2xl font-bold">FLIP CIRCUS</div>
+                            <div className="text-2xl font-bold">{event.name}</div>
                         </div>
                     </div>
                 </div>
@@ -30,17 +30,17 @@ export const EventHero = ({ event }) => {
             <div className="flex flex-col justify-center">
                 <div className="mb-6">
                     <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
-                        {event.title}
+                        {event.name}
                     </h1>
 
                     <div className="flex flex-wrap gap-4 mb-6">
                         <div className="flex items-center gap-2 text-gray-700">
                             <Calendar size={20} />
-                            <span className="font-medium">{event.date}</span>
+                            <span className="font-medium">{event.venue}</span>
                         </div>
                         <div className="flex items-center gap-2 text-gray-700">
                             <Clock size={20} />
-                            <span className="font-medium">{event.time}</span>
+                            <span className="font-medium">{event.category}</span>
                         </div>
                         <div className="flex items-center gap-2 text-gray-700">
                             <MapPin size={20} />
@@ -61,9 +61,7 @@ export const EventHero = ({ event }) => {
                     </div>
 
                     <p className="text-gray-700 leading-relaxed mb-6">
-                        Experience the most spectacular circus show of the year! Flip Circus brings death-defying
-                        acrobatics, mesmerizing performances, and unforgettable entertainment for the whole family.
-                        Don&#39;t miss this limited engagement at the iconic Palisades Center.
+                        {event.description}
                     </p>
                 </div>
 

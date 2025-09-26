@@ -1,7 +1,8 @@
 import {EventCard} from "@/app/components/EventCard";
+import {Events} from "@/app/types/Events";
 
 
-export const EventSection = ({ title, events, showEdit = false }) => {
+export const EventSection = ({ title, events, showEdit = false }:{title:string,events:Events[],showEdit:boolean}) => {
     return (
         <div className="mb-12">
             <div className="flex justify-between items-center mb-6">
@@ -13,7 +14,7 @@ export const EventSection = ({ title, events, showEdit = false }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {events.map((event, index) => (
-                    <EventCard key={index} event={event} />
+                    <EventCard key={index} event={event} size={'normal'} />
                 ))}
             </div>
         </div>

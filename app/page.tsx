@@ -3,70 +3,17 @@ import {SearchBar} from "@/app/components/Input";
 import {HeroBanner} from "@/app/components/HeroBanner";
 import {FilterChips} from "@/app/components/FilterChips";
 import {EventSection} from "@/app/components/EventSection";
+import {eventService} from "@/app/service/events.service";
+import {Events} from "@/app/types/Events";
 
-export default function Home(){
-    const recentlyViewed = [
-        {
-            title: "Travis Scott",
-            popularity: "13.9K",
-            gradient: "from-purple-600 to-pink-600",
-            icon: "🎤"
-        },
-        {
-            title: "Philadelphia Eagles",
-            popularity: "38K",
-            gradient: "from-green-700 to-teal-600",
-            icon: "🏈"
-        },
-        {
-            title: "NBA Youngboy",
-            popularity: "3.6K",
-            gradient: "from-blue-600 to-purple-600",
-            icon: "🎵"
-        },
-        {
-            title: "Miami Hurricanes Football",
-            popularity: "1.2K",
-            gradient: "from-orange-600 to-red-600",
-            icon: "🏈"
-        }
-    ];
 
-    const recommended = [
-        {
-            title: "New York Giants",
-            date: "27 Sep - Jan 04, 2026",
-            events: "8 events near you",
-            popularity: "23.8K",
-            gradient: "from-blue-800 to-red-600",
-            icon: "🏈"
-        },
-        {
-            title: "Tate McRae",
-            date: "Sat, 18 Oct • 23:30",
-            events: "1 event near you",
-            popularity: "15K",
-            gradient: "from-blue-400 to-purple-500",
-            icon: "🎤"
-        },
-        {
-            title: "New York Yankees",
-            date: "23 Sep - Sep 27, 2026",
-            events: "104 events near you",
-            popularity: "67.7K",
-            gradient: "from-gray-700 to-blue-600",
-            icon: "⚾"
-        },
-        {
-            title: "NBA Youngboy",
-            date: "27 Sep - 29 Sep",
-            events: "2 events near you",
-            popularity: "3.6K",
-            gradient: "from-purple-600 to-blue-600",
-            icon: "🎵"
-        }
-    ];
+export default async function Home(){
+    const events= await eventService.getAllEvents()
 
+    const ComedyEvents=events.filter((event:Events)=>event.category==="COMEDY")
+    const MusicEvents=events.filter((event:Events)=>event.category==="MUSIC")
+    const EducationEvents=events.filter((event:Events)=>event.category==="EDUCATION")
+    const SportsEvents=events.filter((event:Events)=>event.category==="SPORTS")
     return (
         <div className="min-h-screen bg-[#E8DFCA]">
             <Header />
@@ -79,23 +26,33 @@ export default function Home(){
 
                 {/* Hero Banner */}
                 <div className="mb-12">
-                    <HeroBanner />
+                    <HeroBanner events={events} />
                 </div>
 
                 {/* Filters */}
-                <FilterChips />
+                {/*<FilterChips />*/}
 
                 {/* Recently Viewed */}
                 <EventSection
-                    title="Recently viewed"
-                    events={recentlyViewed}
-                    showEdit={true}
+                    title="Comedy Events Happening"
+                    events={ComedyEvents}
+                    showEdit={false}
                 />
 
-                {/* Recommended */}
                 <EventSection
-                    title="Recommended for you"
-                    events={recommended}
+                    title="Sports Events Happening"
+                    events={SportsEvents}
+                    showEdit={false}
+                />
+                <EventSection
+                    title="Music Events Happening"
+                    events={MusicEvents}
+                    showEdit={false}
+                />
+                <EventSection
+                    title="Education Events Happening"
+                    events={EducationEvents}
+                    showEdit={false}
                 />
             </main>
 

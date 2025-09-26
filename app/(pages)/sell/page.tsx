@@ -1,221 +1,236 @@
 'use client'
-import React, {useState} from "react";
-import {Shield, TrendingUp, Users} from "lucide-react";
-import {ProgressSteps} from "@/app/(pages)/sell/components/Steps";
-import {EventSearch} from "@/app/(pages)/sell/components/SearchBar";
-import {TicketDetailsForm} from "@/app/(pages)/sell/components/Form";
-import {PricingForm} from "@/app/(pages)/sell/components/Pricing";
-import {ReviewListing} from "@/app/(pages)/sell/components/Review";
-import {SuccessModal} from "@/app/(pages)/sell/components/SuccessModal";
 
+import React, { useState, FormEvent } from 'react'
+import { baseurl } from "@/app/consts"
 
-export default function SellTicketsPage () {
-    const [currentStep, setCurrentStep] = useState(1);
-    const [selectedEvent, setSelectedEvent] = useState(null);
-    const [ticketDetails, setTicketDetails] = useState({
-        section: "",
-        row: "",
-        seats: "",
-        quantity: 2,
-        type: "digital",
-        notes: ""
-    });
-    const [pricing, setPricing] = useState({
-        price: 0,
-        quantity: 2,
-        instantSell: true,
-        acceptOffers: false
-    });
-    const [showSuccess, setShowSuccess] = useState(false);
+interface TicketFormData {
+    quantity: number
+    seatNumbers: string[]
+    seatType: string
+    isPhysicalTicketNeededToAttend: boolean
+}
 
-    const marketData = {
-        avgPrice: 4156,
-        lowestPrice: 1618,
-        highestPrice: 9674
-    };
+export default function SellPage() {
+    const [isLoading, setIsLoading] = useState<boolean>(false)
+    const [error, setError] = useState<string | null>(null)
+    const [success, setSuccess] = useState<boolean>(false)
+    const [seatNumbers, setSeatNumbers] = useState<string[]>([''])
 
-    const handleNext = () => {
-        if (currentStep < 4) {
-            setCurrentStep(prev => prev + 1);
+    // Add new seat number input
+    const addSeatNumber = () => {
+        setSeatNumbers([...seatNumbers, ''])
+    }
+
+    // Remove seat number input
+    const removeSeatNumber = (index: number) => {
+        if (seatNumbers.length > 1) {
+            const newSeatNumbers = seatNumbers.filter((_, i) => i !== index)
+            setSeatNumbers(newSeatNumbers)
         }
-    };
+    }
 
-    const handleEventSelect = (event) => {
-        setSelectedEvent(event);
-        if (event) {
-            setCurrentStep(2);
+    // Update specific seat number
+    const updateSeatNumber = (index: number, value: string) => {
+        const newSeatNumbers = [...seatNumbers]
+        newSeatNumbers[index] = value
+        setSeatNumbers(newSeatNumbers)
+    }
+
+    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault()
+        setIsLoading(true)
+        setError(null)
+        setSuccess(false)
+
+        try {
+            const formData = new FormData(event.currentTarget)
+
+            // Filter out empty seat numbers and trim whitespace
+            const filteredSeatNumbers = seatNumbers
+                .map(seat => seat.trim())
+                .filter(seat => seat !== '')
+
+            if (filteredSeatNumbers.length === 0) {
+                throw new Error('At least one seat number is required')
+            }
+
+            // Create the ticket data object with proper array structure
+            const ticketData: TicketFormData = {
+                quantity: parseInt(formData.get('quantity') as string),
+                seatNumbers: filteredSeatNumbers, // This will be properly serialized as JSON array
+                seatType: formData.get('seatType') as string,
+                isPhysicalTicketNeededToAttend: formData.get('isPhysicalTicketNeededToAttend') === 'on'
+            }
+
+            console.log('Ticket data before sending:', ticketData)
+            console.log('Seat numbers array:', JSON.stringify(filteredSeatNumbers))
+
+            const response = await fetch(`${baseurl}/offer/metadata/upload`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                // Ensure proper JSON stringification of the entire object
+                body: JSON.stringify(ticketData),
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null)
+                console.error('Server error response:', errorData)
+                throw new Error(errorData?.message || 'Failed to submit ticket listing. Please try again.')
+            }
+
+            const result = await response.json()
+            console.log('Success response:', result)
+            setSuccess(true)
+
+            // Reset form after successful submission
+            event.currentTarget.reset()
+            setSeatNumbers(['']) // Reset seat numbers
+
+        } catch (error: any) {
+            setError(error.message || 'An error occurred')
+            console.error('Form submission error:', error)
+        } finally {
+            setIsLoading(false)
         }
-    };
-
-    const handleSubmit = () => {
-        setShowSuccess(true);
-    };
-
-    // Sync quantity between ticket details and pricing
-    React.useEffect(() => {
-        setPricing(prev => ({ ...prev, quantity: ticketDetails.quantity }));
-    }, [ticketDetails.quantity]);
+    }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-
-            <main className="container mx-auto px-8 py-8">
-                {/* Page Header */}
-                <div className="mb-8">
-                    <h1 className="text-4xl font-bold text-gray-900 mb-4">Sell Your Tickets</h1>
-                    <p className="text-xl text-gray-600">
-                        List your tickets on TicketHub and reach thousands of potential buyers
-                    </p>
-                </div>
-
-                {/* Progress Steps */}
-                <ProgressSteps currentStep={currentStep} />
-
-                {/* Step Content */}
-                {currentStep === 1 && (
-                    <EventSearch
-                        selectedEvent={selectedEvent}
-                        onEventSelect={handleEventSelect}
-                    />
-                )}
-
-                {currentStep === 2 && selectedEvent && (
-                    <>
-                        <EventSearch
-                            selectedEvent={selectedEvent}
-                            onEventSelect={handleEventSelect}
-                        />
-                        <TicketDetailsForm
-                            ticketDetails={ticketDetails}
-                            onDetailsChange={setTicketDetails}
-                        />
-                        <div className="flex justify-between">
-                            <button
-                                onClick={() => setCurrentStep(1)}
-                                className="px-8 py-3 border border-gray-300 rounded-xl font-medium hover:bg-gray-50 transition-colors"
-                            >
-                                Back
-                            </button>
-                            <button
-                                onClick={handleNext}
-                                disabled={!ticketDetails.section}
-                                className={`px-8 py-3 rounded-xl font-medium transition-colors ${
-                                    ticketDetails.section
-                                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                }`}
-                            >
-                                Continue to Pricing
-                            </button>
-                        </div>
-                    </>
-                )}
-
-                {currentStep === 3 && selectedEvent && (
-                    <>
-                        <EventSearch
-                            selectedEvent={selectedEvent}
-                            onEventSelect={handleEventSelect}
-                        />
-                        <PricingForm
-                            pricing={pricing}
-                            onPricingChange={setPricing}
-                            marketData={marketData}
-                        />
-                        <div className="flex justify-between">
-                            <button
-                                onClick={() => setCurrentStep(2)}
-                                className="px-8 py-3 border border-gray-300 rounded-xl font-medium hover:bg-gray-50 transition-colors"
-                            >
-                                Back
-                            </button>
-                            <button
-                                onClick={handleNext}
-                                disabled={pricing.price <= 0}
-                                className={`px-8 py-3 rounded-xl font-medium transition-colors ${
-                                    pricing.price > 0
-                                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                }`}
-                            >
-                                Review Listing
-                            </button>
-                        </div>
-                    </>
-                )}
-
-                {currentStep === 4 && selectedEvent && (
-                    <>
-                        <ReviewListing
-                            selectedEvent={selectedEvent}
-                            ticketDetails={ticketDetails}
-                            pricing={pricing}
-                            onSubmit={handleSubmit}
-                        />
-                        <div className="flex justify-between">
-                            <button
-                                onClick={() => setCurrentStep(3)}
-                                className="px-8 py-3 border border-gray-300 rounded-xl font-medium hover:bg-gray-50 transition-colors"
-                            >
-                                Back to Pricing
-                            </button>
-                        </div>
-                    </>
-                )}
-
-                {/* Help Section */}
-                <div className="mt-12 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-3xl p-8">
-                    <div className="text-center">
-                        <h2 className="text-2xl font-bold text-gray-900 mb-4">Need Help?</h2>
-                        <p className="text-gray-600 mb-6">
-                            Our seller support team is here to help you get the most out of your ticket sales
+        <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-md mx-auto">
+                <div className="bg-white rounded-lg shadow-md p-6">
+                    <div className="mb-6">
+                        <h2 className="text-2xl font-bold text-gray-900 text-center">
+                            List Your Tickets
+                        </h2>
+                        <p className="mt-2 text-center text-sm text-gray-600">
+                            Fill out the details to list your tickets for sale
                         </p>
-                        <div className="flex justify-center gap-4">
-                            <button className="bg-white text-blue-600 px-6 py-3 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all">
-                                Chat with Support
-                            </button>
-                            <button className="border border-blue-200 text-blue-600 px-6 py-3 rounded-xl font-medium hover:bg-white transition-colors">
-                                View Seller Guide
-                            </button>
-                        </div>
                     </div>
 
-                    <div className="grid md:grid-cols-3 gap-8 mt-8">
-                        <div className="text-center">
-                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Shield className="text-blue-600" size={24} />
+                    {error && (
+                        <div className="mb-4 p-3 rounded-md bg-red-50 border border-red-200">
+                            <p className="text-sm text-red-600">{error}</p>
+                        </div>
+                    )}
+
+                    {success && (
+                        <div className="mb-4 p-3 rounded-md bg-green-50 border border-green-200">
+                            <p className="text-sm text-green-600">
+                                Ticket listing submitted successfully!
+                            </p>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div>
+                            <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-2">
+                                Quantity
+                            </label>
+                            <input
+                                type="number"
+                                id="quantity"
+                                name="quantity"
+                                required
+                                min="1"
+                                placeholder="Number of tickets"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                            />
+                        </div>
+
+                        <div>
+                            <div className="flex justify-between items-center mb-2">
+                                <label className="block text-sm font-medium text-gray-700">
+                                    Seat Numbers
+                                </label>
+                                <button
+                                    type="button"
+                                    onClick={addSeatNumber}
+                                    className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-blue-600 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200"
+                                >
+                                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Add Seat
+                                </button>
                             </div>
-                            <h3 className="font-bold text-gray-900 mb-2">Secure Transactions</h3>
-                            <p className="text-gray-600 text-sm">
-                                All payments are protected and processed securely through our platform
+
+                            <div className="space-y-2">
+                                {seatNumbers.map((seat, index) => (
+                                    <div key={index} className="flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            value={seat}
+                                            onChange={(e) => updateSeatNumber(index, e.target.value)}
+                                            placeholder={`Seat ${index + 1} (e.g., A1, B2)`}
+                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                                        />
+                                        {seatNumbers.length > 1 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => removeSeatNumber(index)}
+                                                className="inline-flex items-center p-2 border border-gray-300 rounded-md text-gray-400 hover:text-red-500 hover:border-red-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition duration-200"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                            <p className="mt-1 text-xs text-gray-500">
+                                Add multiple seat numbers for your tickets. Each seat should be entered separately.
                             </p>
                         </div>
 
-                        <div className="text-center">
-                            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <TrendingUp className="text-green-600" size={24} />
-                            </div>
-                            <h3 className="font-bold text-gray-900 mb-2">Maximum Exposure</h3>
-                            <p className="text-gray-600 text-sm">
-                                Your listings reach thousands of verified buyers looking for tickets
-                            </p>
+                        <div>
+                            <label htmlFor="seatType" className="block text-sm font-medium text-gray-700 mb-2">
+                                Seat Type
+                            </label>
+                            <input
+                                type="text"
+                                id="seatType"
+                                name="seatType"
+                                required
+                                placeholder="e.g., VIP, General, Premium"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                            />
                         </div>
 
-                        <div className="text-center">
-                            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Users className="text-purple-600" size={24} />
-                            </div>
-                            <h3 className="font-bold text-gray-900 mb-2">24/7 Support</h3>
-                            <p className="text-gray-600 text-sm">
-                                Get help whenever you need it from our dedicated support team
-                            </p>
+                        <div className="flex items-center">
+                            <input
+                                type="checkbox"
+                                id="isPhysicalTicketNeededToAttend"
+                                name="isPhysicalTicketNeededToAttend"
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded transition duration-200"
+                            />
+                            <label htmlFor="isPhysicalTicketNeededToAttend" className="ml-2 block text-sm text-gray-700">
+                                Physical ticket delivery required
+                            </label>
                         </div>
-                    </div>
+
+                        <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
+                        >
+                            {isLoading ? (
+                                <div className="flex items-center">
+                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Submitting...
+                                </div>
+                            ) : (
+                                'List Tickets'
+                            )}
+                        </button>
+                    </form>
                 </div>
-            </main>
-
-            {/* Success Modal */}
-            <SuccessModal isOpen={showSuccess} onClose={() => setShowSuccess(false)} />
+            </div>
         </div>
-    );
-};
+    )
+}
