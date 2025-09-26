@@ -16,7 +16,6 @@ export default async function Home(){
     const SportsEvents=events.filter((event:Events)=>event.category==="SPORTS")
     return (
         <div className="min-h-screen bg-[#E8DFCA]">
-            <Header />
 
             <main className="container mx-auto px-8 py-8">
                 {/* Search Section */}

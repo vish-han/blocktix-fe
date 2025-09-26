@@ -1,9 +1,9 @@
-'use client';
+'use client'
 import React, { useState, useEffect } from 'react';
 import { Upload, ArrowRight, CheckCircle, AlertCircle, Loader, Calendar, Shield } from 'lucide-react';
 import { useWriteContract, useWaitForTransactionReceipt, useAccount, useReadContract } from 'wagmi';
-import {ADMIN_MANAGER_ADDRESS, baseurl, EVENT_MANAGER_ADDRESS} from "@/app/consts";
-import {adminManagerABI, eventManagerABI} from "@/app/consts/abi";
+import { parseUnits } from 'viem';
+import {baseurl} from "@/app/consts";
 
 interface FormData {
     name: string;
@@ -26,6 +26,55 @@ interface FormErrors {
 
 type Step = 1 | 2;
 
+// Contract configuration - Replace with your actual contract address
+const CONTRACT_ADDRESS = '0x7bc48Ccf09989c696AeB7BaFEBB3aBb6FB410559' as const;
+
+// Contract ABI for admin and createEvent functions
+const CONTRACT_ABI = [
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "name": "admin",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "_eventTime",
+                "type": "uint256"
+            },
+            {
+                "internalType": "string",
+                "name": "_metadataUri",
+                "type": "string"
+            }
+        ],
+        "name": "createEvent",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    }
+] as const;
 
 const AdminMetadataPage: React.FC = () => {
     const [currentStep, setCurrentStep] = useState<Step>(1);
@@ -61,14 +110,15 @@ const AdminMetadataPage: React.FC = () => {
     });
 
     // Add admin check hook
+    // @ts-ignore
     const {
         data: isAdmin,
         isLoading: adminCheckLoading,
         error: adminCheckError,
         refetch: refetchAdminStatus
     } = useReadContract({
-        address: ADMIN_MANAGER_ADDRESS,
-        abi: adminManagerABI,
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
         functionName: 'admin',
         args: [address],
         enabled: !!address && isConnected,
@@ -192,8 +242,8 @@ const AdminMetadataPage: React.FC = () => {
 
             // Call createEvent function using wagmi
             writeContract({
-                address: EVENT_MANAGER_ADDRESS,
-                abi: eventManagerABI,
+                address: CONTRACT_ADDRESS,
+                abi: CONTRACT_ABI,
                 functionName: 'createEvent',
                 args: [eventTimestamp, metadataHash],
             });
@@ -290,6 +340,7 @@ const AdminMetadataPage: React.FC = () => {
                             <h1 className="text-3xl font-bold text-gray-900">Admin Event Creation</h1>
                         </div>
 
+                        {/* Admin Status Indicator */}
                         {isConnected && (
                             <div className="mb-4">
                                 {adminCheckLoading ? (
@@ -345,8 +396,9 @@ const AdminMetadataPage: React.FC = () => {
                         </div>
                     )}
 
+                    {/* Admin Access Check */}
                     {isConnected && !adminCheckLoading && !isAdmin && (
-                        <div className="mb-6 bg-rexxxd-50 border border-red-200 rounded-lg p-6">
+                        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-6">
                             <div className="text-center">
                                 <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
                                 <h3 className="text-lg font-semibold text-red-800 mb-2">Access Denied</h3>
@@ -360,6 +412,7 @@ const AdminMetadataPage: React.FC = () => {
                         </div>
                     )}
 
+                    {/* Contract Error */}
                     {adminCheckError && (
                         <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-6">
                             <div className="text-center">
@@ -368,7 +421,6 @@ const AdminMetadataPage: React.FC = () => {
                                 <p className="text-red-700 mb-2">Unable to verify admin status</p>
                                 <p className="text-red-600 text-sm">Please check if the contract address is correct and try again.</p>
                                 <button
-
                                     onClick={() => refetchAdminStatus()}
                                     className="mt-3 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
                                 >
